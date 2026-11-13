@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /account
+Disallow: /billing
+Disallow: /messages
+Disallow: /notifications
+Disallow: /api/
+
+Sitemap: https://tajirdz.freebuff.app/sitemap.xml

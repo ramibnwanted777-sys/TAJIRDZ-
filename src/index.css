@@ -1,0 +1,313 @@
+/* DO NOT CHANGE */
+@import "tailwindcss";
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+
+/* Arabic-first typeface with a Latin fallback chain for prices and names. */
+@theme inline {
+  --font-arabic: "Tajawal", "IBM Plex Sans Arabic", "Segoe UI", system-ui,
+    -apple-system, "Noto Sans Arabic", sans-serif;
+  --font-latin: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* DO NOT CHANGE */
+@theme inline {
+  /* Brand palette exposed as utilities so components can write
+     bg-brand-green instead of a literal hex, keeping every colour in one
+     place (the :root block below is the only definition). */
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-dark: var(--brand-green-dark);
+  --color-brand-green-light: var(--brand-green-light);
+  --color-brand-green-tint: var(--brand-green-tint);
+  --color-brand-green-tint-strong: var(--brand-green-tint-strong);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* CHANGE VALUES FOR THEME */
+:root {
+  --radius: 0.625rem;
+
+  /* --- TajirDz brand palette -----------------------------------------
+     Algerian green #006233 as the primary, black for text and strong
+     actions, soft green tint for surfaces. Flat colours only: no
+     gradients, and depth comes from thin borders rather than shadows. */
+  --brand-green: #006233;
+  --brand-green-dark: #004d29;
+  --brand-green-light: #00894a;
+  /* Soft green surface used for tinted panels and badges. */
+  --brand-green-tint: #eef6f1;
+  --brand-green-tint-strong: #dcefe4;
+
+  /* --- Layout tokens -------------------------------------------------- */
+  --header-height: 56px;
+  --bottom-nav-height: 60px;
+  --page-gutter: 16px;
+  /* 44px keeps every interactive control at the accessible tap size. */
+  --control-height: 44px;
+  --z-header: 40;
+  --z-bottom-nav: 45;
+  --z-sticky-bar: 35;
+  --z-sheet: 60;
+  --z-toast: 80;
+
+  /* Safe-area insets so nothing hides under notches or the bottom nav. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-start: env(safe-area-inset-left, 0px);
+  --safe-end: env(safe-area-inset-right, 0px);
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.145 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: #f4f6f5;
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: var(--brand-green-tint);
+  --accent-foreground: #004d29;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #e3e8e5;
+  --input: #e3e8e5;
+  --ring: var(--brand-green);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    /* Safety net, applied only after the layout causes are fixed: `clip`
+       (not `hidden`) never creates a scroll container, so stray content
+       cannot pan the page sideways while text still wraps instead. */
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* One Arabic-first stack with a system fallback chain. */
+    font-family: var(--font-arabic);
+    /* Uses logical properties so RTL and LTR share one stylesheet. */
+    padding-inline-start: var(--safe-start);
+    padding-inline-end: var(--safe-end);
+    min-height: 100dvh;
+  }
+  button:not([disabled]),
+  [role="button"]:not([disabled]) {
+    cursor: pointer;
+  }
+  /* Latin runs inside Arabic text (prices, SKUs) stay left-to-right. */
+  [dir="rtl"] .latin,
+  bdi {
+    font-family: var(--font-latin);
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+  /* Native controls should not flip arrows in RTL. */
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer components {
+  /* Layout shell: reserves room for the bottom nav so content is never
+     trapped underneath it. */
+  .app-shell {
+    /* Root layout: nothing inside may widen the document horizontally. */
+    overflow-x: clip;
+    padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px);
+  }
+  @media (min-width: 1024px) {
+    /* Desktop has no bottom nav, so the reserve is dropped. */
+    .app-shell {
+      padding-bottom: 32px;
+    }
+  }
+  .tap-target {
+    min-height: var(--control-height);
+    min-width: var(--control-height);
+  }
+  /* Thin-border card. No shadows, no nested cards. */
+  .flat-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+  }
+  .tint-surface {
+    background: var(--brand-green-tint);
+  }
+  /* Top padding for a screen with no header: never smaller than 2rem, and on
+     a notched device the safe area is added on top of 1.5rem instead. */
+  .bare-page-top {
+    padding-block-start: max(2rem, calc(var(--safe-top) + 1.5rem));
+  }
+  @media (min-width: 768px) {
+    .bare-page-top {
+      padding-block-start: 3rem;
+    }
+  }
+}
+
+/* Skeleton shimmer used while the feed loads. */
+@keyframes tajirdz-shimmer {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+.skeleton {
+  animation: tajirdz-shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Phone ergonomics
+
+   Deliberately *unlayered*: anything inside `@layer` loses to Tailwind's
+   utilities, and both rules below have to beat a utility class to work.
+
+   Both are what people actually mean by "not usable on a phone":
+
+   1. iOS Safari zooms the viewport on any focused field that renders smaller
+      than 16px. On this app that is every input (they are `text-sm`), so the
+      first tap in the search box, the sign-in form or any admin field would
+      rescale the page and leave the sticky header looking broken. We do not
+      disable zoom (that is an accessibility failure) — we clear the threshold.
+
+   2. `overflow-x: clip` (root safety net) stops the page from panning
+      sideways, but a URL, an e-mail address or an Arabic run with no spaces
+      would then be *cut off* rather than wrapping, which reads as a broken
+      layout on a narrow screen — so long runs wrap instead.
+   --------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* break-word (not `anywhere`): long runs break only when they genuinely
+     cannot fit, so ordinary text never degrades to one word per line. */
+  p,
+  li,
+  dd,
+  dt,
+  td,
+  th,
+  a,
+  span,
+  label,
+  div,
+  button,
+  bdi,
+  strong,
+  em,
+  summary,
+  figcaption,
+  h1,
+  h2,
+  h3,
+  h4,
+  code,
+  pre {
+    overflow-wrap: break-word;
+  }
+}

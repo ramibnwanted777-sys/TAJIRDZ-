@@ -1,0 +1,7 @@
+{
+  "name": "TajirDz",
+  "description": "TajirDz: سوق جملة موثوق لبائعي التجارة الإلكترونية في الجزائر. منتجات رابحة، أسعار جملة واضحة، وتقييمات لا يمكن تزويرها.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

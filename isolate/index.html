@@ -1,0 +1,83 @@
+<!doctype html>
+<!-- Arabic is the default language, hence dir="rtl" on the document root. -->
+<html lang="ar-DZ" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>TajirDz</title>
+    <meta
+      name="description"
+      content="TajirDz: سوق جملة موثوق لبائعي التجارة الإلكترونية في الجزائر. منتجات رابحة، أسعار جملة واضحة، وتقييمات لا يمكن تزويرها."
+    />
+
+    <!-- PWA -->
+    <!-- `?v=N` is the icon cache-buster. Browsers keep favicons aggressively,
+         so bump it (and `VERSION` in public/sw.js) whenever the icon set is
+         regenerated with `bun run icons`. -->
+    <link rel="manifest" href="/manifest.webmanifest?v=3" />
+    <meta name="theme-color" content="#006233" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=3" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=3" />
+    <link rel="icon" type="image/png" sizes="40x40" href="/favicon-40.png?v=3" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="TajirDz" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Open Graph / Twitter so WhatsApp and Facebook previews render -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TajirDz" />
+    <meta property="og:title" content="TajirDz — سوق الجملة الموثوق لبائعي التجارة الإلكترونية" />
+    <meta
+      property="og:description"
+      content="منتجات رابحة، أسعار جملة واضحة، وتقييمات لا يمكن تزويرها. تواصل مباشرة مع تجار الجملة في كل ولايات الجزائر."
+    />
+    <meta property="og:image" content="https://tajirdz.freebuff.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="ar_DZ" />
+    <meta property="og:locale:alternate" content="fr_DZ" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TajirDz — سوق الجملة الموثوق" />
+    <meta
+      name="twitter:description"
+      content="منتجات رابحة، أسعار جملة واضحة، وتقييمات لا يمكن تزويرها."
+    />
+    <meta name="twitter:image" content="https://tajirdz.freebuff.app/og-image.png" />
+
+    <!-- Arabic-first typeface with a system fallback chain. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "TajirDz",
+        "url": "https://tajirdz.freebuff.app",
+        "logo": "https://tajirdz.freebuff.app/logo.svg",
+        "image": "https://tajirdz.freebuff.app/og-image.png",
+        "description": "Place de marché grossiste de confiance pour les revendeurs en ligne en Algérie.",
+        "areaServed": { "@type": "Country", "name": "Algeria" },
+        "inLanguage": ["ar-DZ", "fr-DZ"]
+      }
+    </script>
+    <script type="module" crossorigin src="/assets/index-CXeU1nnC.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-8oVjLsKF.js">
+    <link rel="modulepreload" crossorigin href="/assets/framer-motion-DADfuP1J.js">
+    <link rel="modulepreload" crossorigin href="/assets/radix-ui-IyMN1ZWJ.js">
+    <link rel="modulepreload" crossorigin href="/assets/charts-CGWYnint.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-PPmBDAs9.css">
+  </head>
+
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

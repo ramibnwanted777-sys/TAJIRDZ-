@@ -1,0 +1,1 @@
+import{r as o}from"./react-vendor-8oVjLsKF.js";import{a as s,b as t}from"./index-CXeU1nnC.js";import{C as a}from"./catalog-BYW5OUBv.js";function i(){return s(t.catalog.categories)??a}function f(){const e=i();return o.useMemo(()=>e.filter(r=>r.active!==!1),[e])}export{f as a,i as u};

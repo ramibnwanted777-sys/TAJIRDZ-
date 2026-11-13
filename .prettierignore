@@ -1,0 +1,14 @@
+# Ignore artifacts:
+build
+coverage
+dist
+
+# Never format or export secret key material.
+.env.keys
+.env*.keys
+.env*.local
+
+# Convex local data mirrors the deployment and must never be exported.
+.convex
+
+bun.lock

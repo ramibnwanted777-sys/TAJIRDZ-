@@ -1,0 +1,10 @@
+.env.local
+.env.keys
+.env*.keys
+.env*.local
+node_modules
+dist
+src/convex/_generated
+
+# Convex local data must never be committed: it mirrors the deployment.
+.convex
