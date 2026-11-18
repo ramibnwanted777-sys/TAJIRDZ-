@@ -10,6 +10,7 @@ import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
 import { cleanText } from "../lib/catalog";
+import { normalizeEmail } from "./lib/security";
 import {
   audit,
   enforceRateLimit,
@@ -155,6 +156,9 @@ export const listUsers = query({
         // Admin is allowed to see every number.
         whatsapp: shop?.whatsappE164 ?? u.whatsappE164 ?? null,
         suspended: u.suspended ?? false,
+        // Sign-up no longer sends a code, so most accounts are unproven. The
+        // panel says so instead of implying every address was checked.
+        emailVerified: Boolean(u.emailVerificationTime),
         verified: shop?.verification === "approved",
         shopName: shop?.name ?? null,
         plan: sub && sub.status === "active" && sub.expiresAt > now ? sub.plan : null,
@@ -382,6 +386,14 @@ export const setUserSuspended = mutation({
         .withIndex("by_owner", (q) => q.eq("ownerId", args.userId))
         .first();
       if (shop) await ctx.db.patch(shop._id, { isActive: false });
+    } else {
+      // Reactivating must undo the shop deactivation above, or a reinstated
+      // wholesaler stays invisible in the feed for no stated reason.
+      const shop = await ctx.db
+        .query("shops")
+        .withIndex("by_owner", (q) => q.eq("ownerId", args.userId))
+        .first();
+      if (shop) await ctx.db.patch(shop._id, { isActive: true });
     }
 
     await audit(ctx, {
@@ -753,6 +765,88 @@ export const setUserRole = mutation({
       targetType: "user",
       targetId: args.userId,
       details: `Changed role to ${args.role} for user ${targetUser.email ?? targetUser._id}`,
+    });
+
+    return { ok: true };
+  },
+});
+
+/**
+ * Remove an account and everything that lets it sign in again.
+ *
+ * Deliberately conservative:
+ *  - never another admin, never yourself;
+ *  - never an owner of a shop, because deleting the person would orphan their
+ *    products and reviews (suspend them instead — that already hides the shop);
+ *  - the admin must retype the account's e-mail address, so a mis-click on a
+ *    row cannot destroy a person's history.
+ *
+ * Auth rows are deleted first: leaving them behind would let the address sign
+ * back in to a user document that no longer exists.
+ */
+export const deleteUser = mutation({
+  args: { userId: v.id("users"), confirmEmail: v.string() },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+    if (args.userId === admin.userId) throw new Error("errCannotDeleteSelf");
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("errNotFound");
+    if (user.role === "admin") throw new Error("errCannotDeleteAdmin");
+    if (normalizeEmail(args.confirmEmail) !== normalizeEmail(user.email ?? "")) {
+      throw new Error("errConfirmMismatch");
+    }
+
+    const shop = await ctx.db
+      .query("shops")
+      .withIndex("by_owner", (q) => q.eq("ownerId", args.userId))
+      .first();
+    if (shop) throw new Error("errUserHasShop");
+
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .collect();
+    for (const account of accounts) {
+      const codes = await ctx.db
+        .query("authVerificationCodes")
+        .filter((q) => q.eq(q.field("accountId"), account._id))
+        .collect();
+      for (const code of codes) await ctx.db.delete(code._id);
+      await ctx.db.delete(account._id);
+    }
+
+    const sessions = await ctx.db
+      .query("authSessions")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .collect();
+    for (const session of sessions) {
+      const tokens = await ctx.db
+        .query("authRefreshTokens")
+        .filter((q) => q.eq(q.field("sessionId"), session._id))
+        .collect();
+      for (const token of tokens) await ctx.db.delete(token._id);
+      await ctx.db.delete(session._id);
+    }
+
+    // Personal rows that only ever belonged to this account.
+    for (const table of ["favorites", "notifications", "notificationPrefs", "pushSubscriptions"] as const) {
+      const rows = await ctx.db
+        .query(table)
+        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .collect();
+      for (const row of rows) await ctx.db.delete(row._id);
+    }
+
+    const email = user.email ?? String(args.userId);
+    await ctx.db.delete(args.userId);
+
+    await audit(ctx, {
+      actorId: admin.userId,
+      action: "user.delete",
+      targetType: "user",
+      targetId: args.userId,
+      details: `Deleted account ${email}`,
     });
 
     return { ok: true };

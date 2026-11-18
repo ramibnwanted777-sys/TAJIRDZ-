@@ -258,14 +258,19 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
       )}
 
       <form onSubmit={submit} className="mt-3 space-y-3" noValidate>
-        <PasswordInput
-          id="account-current-password"
-          label={hasPassword ? t.authCurrentPassword : t.authPassword}
-          value={current}
-          onChange={setCurrent}
-          autoComplete="current-password"
-          visible={show}
-        />
+        {/* Only asked for when a password exists: an account created with an
+            emailed code has nothing to confirm, and the field only made the
+            form look like it wanted a password nobody had been given. */}
+        {hasPassword && (
+          <PasswordInput
+            id="account-current-password"
+            label={t.authCurrentPassword}
+            value={current}
+            onChange={setCurrent}
+            autoComplete="current-password"
+            visible={show}
+          />
+        )}
         <PasswordInput
           id="account-new-password"
           label={t.authNewPassword}

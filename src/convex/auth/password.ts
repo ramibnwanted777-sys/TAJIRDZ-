@@ -2,9 +2,10 @@ import { Password } from "@convex-dev/auth/providers/Password";
 import type { PasswordConfig } from "@convex-dev/auth/providers/Password";
 import type { DataModel } from "../_generated/dataModel";
 
-import { resetEmailConfig, verifyEmailConfig } from "./emailOtp";
+import { resetEmailConfig } from "./emailOtp";
 import {
   isAdminEmail,
+  isValidEmail,
   normalizeEmail,
   validatePassword,
 } from "../lib/security";
@@ -34,7 +35,16 @@ const MAX_NAME_LENGTH = 120;
  */
 const config: PasswordConfig<DataModel> = {
   id: "password",
-  verify: verifyEmailConfig,
+  // Sign-up completes without an emailed code on purpose.
+  //
+  // Email infrastructure costs money (a verified domain or a transactional
+  // provider), and requiring it closed the marketplace to everyone except the
+  // owner: a new visitor could never finish registering. Signing up with a
+  // password is therefore self-service, and the address is treated as
+  // unproven — `emailVerificationTime` stays unset, so the ADMIN_EMAILS
+  // bootstrap (which requires a proven address, see lib/access.ts) still
+  // cannot be claimed by someone who merely typed the admin address.
+  // Re-enable `verify: verifyEmailConfig` once a sender is configured.
   reset: resetEmailConfig,
 
   validatePasswordRequirements: (value) => {
@@ -43,6 +53,9 @@ const config: PasswordConfig<DataModel> = {
 
   profile: (params) => {
     const email = normalizeEmail(String(params.email ?? ""));
+    // Nothing else proves the address now, so a malformed one is rejected here
+    // rather than stored and shown to wholesalers later.
+    if (!isValidEmail(email)) throw new Error("errEmailInvalid");
     const role = profileRole(email, params.role);
     const name = profileName(params.name);
     // Only the fields we set are returned; Convex Auth fills the rest in.

@@ -1613,10 +1613,16 @@ export async function localSignInWithProvider(
   }
 
   const cred = creds[email];
-  if (cred && cred.password && cred.password !== password) {
+  if (!cred) {
     throw new Error("InvalidSecret");
   }
-  if (!cred) {
+  // An account created with an emailed code has no password. Accepting any
+  // secret for it would let anyone who knows the address in, so this is its own
+  // error: the client tells the person to use the code or to set a password.
+  if (!cred.password) {
+    throw new Error("errNoPasswordSet");
+  }
+  if (cred.password !== password) {
     throw new Error("InvalidSecret");
   }
 
@@ -2150,10 +2156,18 @@ function executeFunction(name: string, rawArgs: ArgsObj = {}): unknown {
       validatePassword(newPassword);
       if (newPassword === currentPassword) throw new Error("errPasswordUnchanged");
       const creds = loadCredentials();
-      if (creds[email]?.password !== currentPassword) {
-        throw new Error("errInvalidCredentials");
+      const stored = creds[email];
+      // An account created with an emailed code has no password yet: there is
+      // nothing to confirm, and being signed in is the proof of ownership. Any
+      // code still in flight is kept so it continues to work.
+      if (stored?.password) {
+        if (stored.password !== currentPassword) {
+          throw new Error("errInvalidCredentials");
+        }
+        creds[email] = { ...stored, password: newPassword };
+      } else {
+        creds[email] = { ...(stored ?? {}), password: newPassword };
       }
-      creds[email] = { password: newPassword };
       saveCredentials(creds);
       return { changed: true as const };
     }

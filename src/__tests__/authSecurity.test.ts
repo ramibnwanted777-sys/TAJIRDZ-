@@ -125,6 +125,28 @@ describe("authErrorText", () => {
     );
   });
 
+  it("names a code that never left the server, and keeps the address out of it", () => {
+    // The server reports the provider status, or the missing key before that.
+    // Both are deployment problems, so blaming the password would send the
+    // person round the same loop forever.
+    expect(authErrorText(new Error("emailSendFailed (500)"), t, generic)).toBe(
+      t.errEmailSendFailed,
+    );
+    const missingKey = authErrorText(
+      new Error("VLY_EMAIL_API_KEY is not set. Run: npx convex env set VLY_EMAIL_API_KEY <key>"),
+      t,
+      generic,
+    );
+    expect(missingKey).toBe(t.errEmailSendFailed);
+    expect(missingKey).not.toContain("VLY_EMAIL_API_KEY");
+  });
+
+  it("points an account with no password at the code, not at a retry", () => {
+    const message = authErrorText(new Error("errNoPasswordSet"), t, generic);
+    expect(message).toBe(t.errNoPasswordSet);
+    expect(message).not.toBe(generic);
+  });
+
   it("says the same thing in French", () => {
     const fr = getDict("fr");
     expect(authErrorText(new Error("Invalid credentials"), fr, fr.authInvalidCredentials)).toBe(

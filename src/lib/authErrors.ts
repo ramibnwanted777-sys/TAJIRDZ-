@@ -21,6 +21,21 @@ export function authErrorText(error: unknown, t: Dict, fallback: string): string
   const guard = parseAuthGuardError(message);
   if (guard) return interpolate(t.authLockout, { minutes: guard.minutes });
 
+  // A code that never left the server is a deployment problem, not a credential
+  // problem: naming it turns "it doesn't work" into something fixable, and it
+  // reveals nothing about whether the address has an account.
+  if (
+    message.includes("emailSendFailed") ||
+    message.includes("VLY_EMAIL_API_KEY")
+  ) {
+    return t.errEmailSendFailed;
+  }
+
+  // An account that only ever signed in with a code has no password. Telling
+  // the person which door to use is the whole fix; the generic "wrong
+  // credentials" sentence would send them round the same loop again.
+  if (message === "errNoPasswordSet") return t.errNoPasswordSet;
+
   // Password policy failures are safe to name: they say nothing about whether
   // the address exists.
   if (message === "errPasswordTooShort") return t.errPasswordTooShort;

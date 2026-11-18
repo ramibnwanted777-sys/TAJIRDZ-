@@ -65,7 +65,10 @@ const noEmoji = {
 };
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  // `src/convex/_generated` is written by the Convex CLI (and is committed so
+  // the project typechecks without a deployment). Linting it would only ever
+  // report on machine-written code.
+  { ignores: ["dist", "src/convex/_generated"] },
   {
     extends: [
       js.configs.recommended,

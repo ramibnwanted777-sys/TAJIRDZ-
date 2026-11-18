@@ -114,11 +114,6 @@ async function syncAdminRole(
   ctx: QueryCtx | MutationCtx,
   principal: Principal,
 ): Promise<void> {
-  // A QueryCtx cannot write, so promotion only happens from a mutation. Public
-  // reads call `currentPrincipal` directly and never promote.
-  if (!("db" in ctx)) return;
-  const writeCtx = ctx as MutationCtx;
-
   if (!shouldPromoteToAdmin(principal)) {
     // Not yet: either not on the allowlist, or the address is still unproven.
     // Re-checked on every later call, so the promotion lands automatically on
@@ -126,9 +121,18 @@ async function syncAdminRole(
     return;
   }
 
-  await writeCtx.db.patch(principal.userId, { role: "admin" });
+  // Grant the role for THIS call even when the caller is a query. Reads have to
+  // see the same admin view that a mutation will persist: deriving it only on
+  // write made the first admin page load fail (a QueryCtx has no `db.patch`),
+  // so every admin read crashed until some unrelated mutation happened to run.
   principal.doc.role = "admin";
   principal.role = "admin";
+
+  // A QueryCtx cannot write, so the stored row catches up on the next mutation.
+  if (typeof (ctx as MutationCtx).db?.patch !== "function") return;
+  const writeCtx = ctx as MutationCtx;
+
+  await writeCtx.db.patch(principal.userId, { role: "admin" });
   await audit(writeCtx, {
     actorId: principal.userId,
     action: "user.admin_bootstrapped",

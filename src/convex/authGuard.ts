@@ -13,7 +13,7 @@
  * make automated guessing impractical for anything going through the app.
  */
 
-import { action, mutation } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
@@ -35,6 +35,28 @@ const kindValidator = v.union(
   v.literal("resetVerify"),
   v.literal("emailVerify"),
 );
+
+/**
+ * Can this deployment actually send an e-mail right now?
+ *
+ * Password reset is code-based, so without a sender the screen would ask for a
+ * code that can never arrive. The UI reads this to say so up front instead.
+ * Only whether a key exists is exposed — never the value.
+ */
+export const emailSenderConfigured = query({
+  handler: async () => {
+    if ((process.env.BREVO_API_KEY || "").trim()) return true;
+    if ((process.env.VLY_EMAIL_API_KEY || "").trim()) return true;
+
+    // A Resend key alone is not enough: without a verified domain Resend only
+    // accepts the account owner's own address, so saying "reset is available"
+    // would promise a code that never arrives for everybody else.
+    if (!(process.env.RESEND_API_KEY || "").trim()) return false;
+    const from = (process.env.RESEND_FROM || process.env.VLY_EMAIL_FROM || "")
+      .toLowerCase();
+    return Boolean(from) && !from.includes("resend.dev");
+  },
+});
 
 /** Charge one attempt. Throws `errAuthGuard:<kind>:<minutes>` when exhausted. */
 export const chargeAttempt = mutation({

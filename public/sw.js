@@ -11,7 +11,7 @@
 
 // Bump whenever a precached asset changes, so installed clients drop the old
 // copies instead of serving a stale logo from cache forever.
-const VERSION = "v6";
+const VERSION = "v7";
 const SHELL_CACHE = `tajirdz-shell-${VERSION}`;
 const RUNTIME_CACHE = `tajirdz-runtime-${VERSION}`;
 
@@ -20,18 +20,18 @@ const RUNTIME_CACHE = `tajirdz-runtime-${VERSION}`;
 const SHELL_ASSETS = [
   "/",
   "/offline.html",
-  "/logo.svg?v=3",
-  "/favicon.svg?v=3",
-  "/favicon-16.png?v=3",
-  "/favicon-32.png?v=3",
-  "/favicon-40.png?v=3",
-  "/apple-touch-icon.png?v=3",
-  "/icons/icon-192.png?v=3",
-  "/icons/icon-512.png?v=3",
-  "/icons/maskable-192.png?v=3",
-  "/icons/maskable-512.png?v=3",
+  "/logo.svg?v=4",
+  "/favicon.svg?v=4",
+  "/favicon-16.png?v=4",
+  "/favicon-32.png?v=4",
+  "/favicon-40.png?v=4",
+  "/apple-touch-icon.png?v=4",
+  "/icons/icon-192.png?v=4",
+  "/icons/icon-512.png?v=4",
+  "/icons/maskable-192.png?v=4",
+  "/icons/maskable-512.png?v=4",
   "/og-image.png",
-  "/manifest.webmanifest?v=3",
+  "/manifest.webmanifest?v=4",
 ];
 
 self.addEventListener("install", (event) => {

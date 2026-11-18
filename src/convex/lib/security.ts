@@ -39,6 +39,20 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+/**
+ * Shape check for an address that will be stored.
+ *
+ * Sign-up no longer proves an address by sending it a code, so the shape is the
+ * only thing the server can enforce. Deliberately narrow — one `@`, a dotted
+ * domain, no whitespace, sane length — because the point is to reject pasted
+ * junk like `a@b` or `me@localhost`, not to out-guess RFC 5322.
+ */
+export function isValidEmail(email: string): boolean {
+  if (email.length < 6 || email.length > 254) return false;
+  if (/\s/.test(email)) return false;
+  return /^[^@]+@[^@.]+(\.[^@.]+)+$/.test(email);
+}
+
 /** Generic failures, so sign-in never reveals whether an account exists. */
 export const GENERIC_CREDENTIALS_ERROR = "errInvalidCredentials";
 

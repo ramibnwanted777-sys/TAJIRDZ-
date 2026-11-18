@@ -10,7 +10,11 @@
 import { action, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import { v } from "convex/values";
-import { modifyAccountCredentials, retrieveAccount } from "@convex-dev/auth/server";
+import {
+  createAccount,
+  modifyAccountCredentials,
+  retrieveAccount,
+} from "@convex-dev/auth/server";
 
 import { currentPrincipal } from "./lib/access";
 import { validatePassword } from "./lib/security";
@@ -72,24 +76,41 @@ export const changePassword = action({
     // Reject a weak or unchanged new password with the same rules sign-up uses,
     // so an existing password cannot be weakened by "changing" it.
     validatePassword(args.newPassword);
-    if (args.newPassword === args.currentPassword) {
-      throw new Error("errPasswordUnchanged");
-    }
 
-    const verified = await retrieveAccount(ctx, {
-      provider: PASSWORD_PROVIDER,
-      account: { id: email, secret: args.currentPassword },
-    });
-    if (!verified) {
-      // The client shows one generic message for this, exactly as it does for
-      // a wrong password at sign-in.
-      throw new Error("errInvalidCredentials");
-    }
+    const { hasPassword } = await ctx.runQuery(api.account.passwordStatus);
 
-    await modifyAccountCredentials(ctx, {
-      provider: PASSWORD_PROVIDER,
-      account: { id: email, secret: args.newPassword },
-    });
+    if (!hasPassword) {
+      // First password for an account created with an emailed code. There is no
+      // secret to confirm — being signed in is the proof of ownership — and
+      // `modifyAccountCredentials` cannot be used here because it throws when
+      // the account row does not exist yet. `createAccount` links the new
+      // credentials account to the user who already owns this verified email.
+      await createAccount(ctx, {
+        provider: PASSWORD_PROVIDER,
+        account: { id: email, secret: args.newPassword },
+        profile: { email },
+        shouldLinkViaEmail: true,
+      });
+    } else {
+      if (args.newPassword === args.currentPassword) {
+        throw new Error("errPasswordUnchanged");
+      }
+
+      const verified = await retrieveAccount(ctx, {
+        provider: PASSWORD_PROVIDER,
+        account: { id: email, secret: args.currentPassword },
+      });
+      if (!verified) {
+        // The client shows one generic message for this, exactly as it does for
+        // a wrong password at sign-in.
+        throw new Error("errInvalidCredentials");
+      }
+
+      await modifyAccountCredentials(ctx, {
+        provider: PASSWORD_PROVIDER,
+        account: { id: email, secret: args.newPassword },
+      });
+    }
 
     await ctx.runAction(api.authGuard.invalidateOtherSessions);
 

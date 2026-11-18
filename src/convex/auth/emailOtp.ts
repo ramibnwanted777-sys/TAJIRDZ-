@@ -33,10 +33,26 @@ async function sendAuthEmail({
   /** Which of the two template variants to use when HTML is enabled. */
   kind?: AuthEmailKind;
 }): Promise<void> {
-  const apiKey = process.env.VLY_EMAIL_API_KEY;
+  // Two interchangeable senders, picked by whichever key the deployment has:
+  // RESEND_API_KEY talks to Resend directly (no relay in the middle), and
+  // VLY_EMAIL_API_KEY talks to the Freebuff/vly auth relay. Keeping both means
+  // the deployment never needs a code change to switch provider.
+  const brevoKey = (process.env.BREVO_API_KEY || "").trim();
+  if (brevoKey) {
+    await sendViaBrevo({ to, code, kind, apiKey: brevoKey });
+    return;
+  }
+
+  const resendKey = (process.env.RESEND_API_KEY || "").trim();
+  if (resendKey) {
+    await sendViaResend({ to, code, kind, apiKey: resendKey });
+    return;
+  }
+
+  const apiKey = process.env.VLY_EMAIL_API_KEY?.trim();
   if (!apiKey) {
     throw new Error(
-      "VLY_EMAIL_API_KEY is not set. Run: npx convex env set VLY_EMAIL_API_KEY <key>",
+      "No email sender configured. Run: npx convex env set BREVO_API_KEY <key> (or RESEND_API_KEY / VLY_EMAIL_API_KEY)",
     );
   }
   const payload: Record<string, string> = {
@@ -65,6 +81,114 @@ async function sendAuthEmail({
     const status =
       axios.isAxiosError(error) ? error.response?.status : undefined;
     throw new Error(`emailSendFailed${status ? ` (${status})` : ""}`);
+  }
+}
+
+/**
+ * Parse `Name <address>` into the two fields the providers want.
+ * Falls back to the bare string when there is no display name.
+ */
+function parseFrom(raw: string | undefined, fallbackEmail: string): {
+  name: string;
+  email: string;
+} {
+  const value = (raw || "").trim();
+  const match = /^(.*)<([^>]+)>\s*$/.exec(value);
+  const appName = process.env.VLY_APP_NAME || "TajirDz";
+  if (match) {
+    const name = match[1].trim().replace(/^"|"$/g, "");
+    return { name: name || appName, email: match[2].trim() };
+  }
+  return { name: appName, email: value || fallbackEmail };
+}
+
+/**
+ * Brevo delivery — the option that needs no domain.
+ *
+ * Brevo verifies a *sender address* rather than a domain, so a deployment with
+ * no registered domain can still reach any recipient. That is what unblocks
+ * real sign-ups before a domain exists; deliverability is weaker than a
+ * verified domain, so this path is the fallback, not the goal.
+ */
+async function sendViaBrevo({
+  to,
+  code,
+  kind,
+  apiKey,
+}: {
+  to: string;
+  code?: string;
+  kind: AuthEmailKind;
+  apiKey: string;
+}): Promise<void> {
+  const lang: AuthEmailLang = process.env.VLY_EMAIL_LANG === "fr" ? "fr" : "ar";
+  const sender = parseFrom(
+    process.env.VLY_EMAIL_FROM || process.env.BREVO_SENDER_EMAIL,
+    process.env.BREVO_SENDER_EMAIL || "",
+  );
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json",
+      "api-key": apiKey,
+    },
+    body: JSON.stringify({
+      sender,
+      to: [{ email: to }],
+      subject: authEmailSubject(lang, kind),
+      htmlContent: authEmailHtml({ lang, kind, code: code ?? "" }),
+      textContent: `${process.env.VLY_APP_NAME || "TajirDz"}: ${code ?? ""}`,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`emailSendFailed (${res.status})`);
+  }
+}
+
+/**
+ * Direct Resend delivery.
+ *
+ * `from` is configurable because Resend only delivers from a verified domain
+ * (or `onboarding@resend.dev`, which Resend restricts to the account owner's
+ * own address). Point VLY_EMAIL_FROM at your domain once it is verified.
+ */
+async function sendViaResend({
+  to,
+  code,
+  kind,
+  apiKey,
+}: {
+  to: string;
+  code?: string;
+  kind: AuthEmailKind;
+  apiKey: string;
+}): Promise<void> {
+  const lang: AuthEmailLang = process.env.VLY_EMAIL_LANG === "fr" ? "fr" : "ar";
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      // Resend keeps its own sender variable: Resend only accepts a verified
+      // domain (or its shared onboarding address), so it must not inherit the
+      // Brevo sender, which is a plain mailbox.
+      from:
+        process.env.RESEND_FROM ||
+        process.env.VLY_EMAIL_FROM ||
+        "TajirDz <onboarding@resend.dev>",
+      to: [to],
+      subject: authEmailSubject(lang, kind),
+      html: authEmailHtml({ lang, kind, code: code ?? "" }),
+      text: `${process.env.VLY_APP_NAME || "TajirDz"}: ${code ?? ""}`,
+    }),
+  });
+  if (!res.ok) {
+    // Status only: the body can echo the recipient and the provider detail,
+    // and this message is surfaced to the user and to logs.
+    throw new Error(`emailSendFailed (${res.status})`);
   }
 }
 

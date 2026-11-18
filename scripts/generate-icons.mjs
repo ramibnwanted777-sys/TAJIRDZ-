@@ -151,23 +151,21 @@ function insidePolygon(x, y, points) {
 /**
  * Colour of the mark at a normalised point, or null for transparent.
  *
- * `padding` insets the whole artwork, which is how the maskable icon keeps its
- * content inside the safe zone every platform reserves.
+ * `scale` shrinks the drawn mark about the tile centre (1 = fills the tile),
+ * which is how a small favicon stays legible. The tile keeps its rounded
+ * corners; only `rounded: false` squares it off.
  */
-function sample(x, y, { padding = 0, variant }) {
+function sample(x, y, { scale = 1, variant, rounded = true }) {
   const s = LOGO_TILE;
   const u = x * s;
   const v = y * s;
-  const radius = s - padding * 2;
 
-  const px = u - padding;
-  const py = v - padding;
+  if (rounded && !insideRoundedRect(u, v, s, s, LOGO_CORNER_RADIUS)) return null;
 
-  const scale = radius / s;
-  const bx = px / scale;
-  const by = py / scale;
-
-  if (!insideRoundedRect(px, py, radius, radius, LOGO_CORNER_RADIUS * scale)) return null;
+  // Zoom the artwork about the centre so the green field still covers the
+  // whole tile while the mark itself grows or shrinks.
+  const bx = (u - s / 2) / scale + s / 2;
+  const by = (v - s / 2) / scale + s / 2;
 
   const { crossbar, stem, arrow } = logoShapes(variant);
 
@@ -293,7 +291,7 @@ function renderSocial() {
       const lx = (x - markX) / markSize;
       const ly = (y - markY) / markSize;
       if (lx >= 0 && lx <= 1 && ly >= 0 && ly <= 1) {
-        const mark = sample(lx, ly, { padding: 0, variant: "full" });
+        const mark = sample(lx, ly, { variant: "full" });
         if (mark) {
           rgba[idx] = mark[0];
           rgba[idx + 1] = mark[1];
@@ -336,8 +334,8 @@ function renderSocial() {
 // ---------------------------------------------------------------------------
 
 /** Small PNGs use the scaled-up mark; anything at 40px and up uses the full one. */
-function icon(size, { padding = 0 } = {}) {
-  return renderIcon(size, { padding, variant: variantForSize(size) });
+function icon(size, options = {}) {
+  return renderIcon(size, { ...options, variant: variantForSize(size) });
 }
 
 const outputs = [
@@ -348,10 +346,12 @@ const outputs = [
   ["favicon-32.png", icon(32)],
   ["favicon-40.png", icon(40)],
   ["apple-touch-icon.png", icon(180)],
-  // Maskable: artwork inset so platform masks never clip the mark. Android
-  // reserves ~20% of the tile, so the green field is padded past that.
-  ["icons/maskable-192.png", renderIcon(192, { padding: 22, variant: "full" })],
-  ["icons/maskable-512.png", renderIcon(512, { padding: 56, variant: "full" })],
+  // Maskable: Android crops the icon to its own shape, so the safe choice is a
+  // full-bleed green square with the mark inside the central safe zone (a
+  // circle of 80% diameter). The mark already occupies ~54% of the tile, so a
+  // light shrink keeps every corner of the artwork inside that circle.
+  ["icons/maskable-192.png", renderIcon(192, { variant: "full", scale: 0.88, rounded: false })],
+  ["icons/maskable-512.png", renderIcon(512, { variant: "full", scale: 0.88, rounded: false })],
   ["og-image.png", renderSocial()],
 ];
 

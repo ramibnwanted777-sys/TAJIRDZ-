@@ -8,15 +8,17 @@
  * five-try lock, and every password failure is reported as one generic message
  * so the form cannot be used to discover which addresses have accounts.
  *
- * Creating an account only creates a *pending* one: the address has to be
- * proven with a 6-digit code before the account can do anything. Only then does
- * the existing onboarding run, and the wholesaler form creates the shop that
- * every product hangs off.
+ * Creating an account is self-service: the password alone signs the new user
+ * in, because the deployment has no mail sender yet (see
+ * `src/convex/auth/password.ts`). The address is stored unproven, so nothing
+ * that demands a verified address — admin bootstrap in particular — can be
+ * claimed by typing someone else's e-mail. Onboarding then runs, and the
+ * wholesaler form creates the shop that every product hangs off.
  */
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { Store, ShoppingBag, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -622,6 +624,12 @@ function VerifyAccountNotice({
 function CodeSignInPanel({ email, onBack }: { email: string; onBack: () => void }) {
   const { t } = useLang();
   const { signIn } = useAuth();
+  // With no deployment URL the app runs against the in-browser demo backend,
+  // which shows the code in a toast instead of sending mail. Saying so beats
+  // leaving someone waiting for an e-mail that will never arrive.
+  const isLocalDemo = !(
+    import.meta.env.VITE_CONVEX_URL as string | undefined
+  )?.trim();
 
   const [address, setAddress] = useState(email);
   const [code, setCode] = useState("");
@@ -640,8 +648,10 @@ function CodeSignInPanel({ email, onBack }: { email: string; onBack: () => void 
       await signIn("email-otp", { email: address });
       setCodeSent(true);
       toast.success(t.authCodeSent);
-    } catch {
-      setError(t.errGeneric);
+    } catch (err) {
+      // A failed send is usually the deployment's mail key, not a wrong
+      // address; `authErrorText` names it instead of saying "something failed".
+      setError(authErrorText(err, t, t.errGeneric));
     } finally {
       setBusy(false);
     }
@@ -657,8 +667,8 @@ function CodeSignInPanel({ email, onBack }: { email: string; onBack: () => void 
     try {
       await signIn("email-otp", { email: address, code });
       toast.success(t.authVerified);
-    } catch {
-      setError(t.authCodeWrong);
+    } catch (err) {
+      setError(authErrorText(err, t, t.authCodeWrong));
     } finally {
       setBusy(false);
     }
@@ -684,6 +694,12 @@ function CodeSignInPanel({ email, onBack }: { email: string; onBack: () => void 
           className={`${inputClass} text-start`}
         />
       </Field>
+
+      {isLocalDemo && (
+        <p className="rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-neutral-600">
+          {t.authLocalDemoNotice}
+        </p>
+      )}
 
       {!codeSent ? (
         <PrimaryButton busy={busy} type="button" onClick={send}>
@@ -940,9 +956,10 @@ function RoleChoice({
 // ---------------------------------------------------------------------------
 
 function ResetPasswordPanel({ onCancel }: { onCancel: () => void }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { signIn } = useAuth();
   const chargeAttempt = useMutation(api.authGuard.chargeAttempt);
+  const emailReady = useQuery(api.authGuard.emailSenderConfigured);
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState("");
@@ -1058,6 +1075,27 @@ function ResetPasswordPanel({ onCancel }: { onCancel: () => void }) {
   };
 
   if (step === 1) {
+    // Without a sender the next screen would ask for a code that can never
+    // arrive, so say what is actually wrong and how to get a new password.
+    if (emailReady === false) {
+      return (
+        <div className="space-y-4">
+          <h2 className="text-sm font-bold text-black">{t.authResetTitle}</h2>
+          <p className="rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
+            {t.authResetUnavailable}
+          </p>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="tap-target inline-flex items-center gap-1 text-xs font-semibold text-[#006233]"
+          >
+            <ArrowLeft className="size-3.5" aria-hidden />
+            {lang === "ar" ? "رجوع" : "Retour"}
+          </button>
+        </div>
+      );
+    }
+
     return (
       <form onSubmit={submitEmail} className="space-y-4" noValidate>
         <h2 className="text-sm font-bold text-black">{t.authResetTitle}</h2>

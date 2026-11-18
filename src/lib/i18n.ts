@@ -500,6 +500,8 @@ const ar = {
   authSubtitle: "سجّل دخول ولا أنشئ حساب جديد",
   authContinue: "أرسل رمز التحقق",
   authCodeSent: "درنا رمز التحقق لإيميلك",
+  authLocalDemoNotice:
+    "نسخة تجريبية محلية: رمز التحقق يظهر في إشعار هنا، وما ينبعثش بالإيميل.",
   authCodePlaceholder: "رمز التحقق",
   authVerify: "تأكيد",
   authVerified: "تم تأكيد الحساب",
@@ -560,6 +562,8 @@ const ar = {
   authResetStepCode: "أدخل الرمز",
   authResetStepPassword: "اختر كلمة مرور جديدة",
   authResetSent: "إن كان البريد مسجلاً، أُرسل رمز من 6 أرقام.",
+  authResetUnavailable:
+    "استرجاع كلمة المرور ما زال غير مفعّل: الموقع ما عندو خدمة بريد مُهيّأة. تواصل مع الإدارة من صفحة «اتصل بنا» باش نحلولك المشكل.",
   authResetDone: "تبدّلت كلمة المرور. سجّل دخول دوز.",
   authLockout: "محاولات كثيرة. حاول بعد {minutes} دقيقة.",
   authResendCooldown: "أعد الإرسال بعد {seconds} ثانية",
@@ -800,6 +804,10 @@ const ar = {
   signups: "التسجيلات الجديدة",
   conversionTrial: "تحويل التجربة إلى مدفوع",
   errGeneric: "حدث خطأ. حاول مرة أخرى.",
+  errEmailSendFailed:
+    "تعذّر إرسال رمز التحقق. إعدادات البريد على السيرفر ناقصة — جرّب الدخول بكلمة المرور.",
+  errNoPasswordSet:
+    "هاد الحساب ما عندوش كلمة مرور. ادخل بالرمز يصلك على البريد، ولا عيّن كلمة مرور من صفحة حسابك.",
   errRateLimited: "محاولات كثيرة. أعد المحاولة بعد {minutes} دقيقة.",
   errNotAuthorized: "لا تملك صلاحية لهذا الإجراء",
   errNotSignedIn: "يجب تسجيل الدخول",
@@ -1313,6 +1321,8 @@ const fr: DictShape = {
   authSubtitle: "Connectez-vous ou créez un compte",
   authContinue: "Envoyer le code",
   authCodeSent: "Nous avons envoyé un code à votre e-mail",
+  authLocalDemoNotice:
+    "Version de démonstration locale : le code s'affiche ici et aucun e-mail n'est envoyé.",
   authCodePlaceholder: "Code de vérification",
   authVerify: "Vérifier",
   authVerified: "Compte vérifié",
@@ -1377,6 +1387,8 @@ const fr: DictShape = {
   authResetStepPassword: "Choisissez un nouveau mot de passe",
   authResetSent:
     "Si cette adresse est connue, un code à 6 chiffres vient d'être envoyé.",
+  authResetUnavailable:
+    "La réinitialisation n'est pas encore active : aucun service d'e-mail n'est configuré. Contactez l'administration via la page « Contact » pour débloquer votre compte.",
   authResetDone: "Mot de passe modifié. Connectez-vous.",
   authLockout:
     "Compte temporairement bloqué après trop de tentatives. Réessayez dans {minutes} minutes.",
@@ -1562,6 +1574,10 @@ const fr: DictShape = {
   conversionTrial: "Conversion essai → payant",
 
   errGeneric: "Une erreur est survenue. Réessayez.",
+  errEmailSendFailed:
+    "Impossible d'envoyer le code. La configuration e-mail du serveur est incomplète — essayez avec le mot de passe.",
+  errNoPasswordSet:
+    "Ce compte n'a pas encore de mot de passe. Connectez-vous avec le code reçu par e-mail, ou définissez un mot de passe depuis votre compte.",
   errRateLimited: "Trop de tentatives. Réessayez dans {minutes} minutes.",
   errNotAuthorized: "Vous n'avez pas les droits pour cette action",
   errNotSignedIn: "Vous devez vous connecter",

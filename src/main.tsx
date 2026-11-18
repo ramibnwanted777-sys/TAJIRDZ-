@@ -1,5 +1,12 @@
 import "@vly-ai/integrations";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthWall } from "@/components/AuthWall";
+import {
+  capturePageview,
+  identifyUser,
+  initAnalytics,
+  resetAnalytics,
+} from "@/lib/analytics";
 import { RequireAuth } from "@/components/RequireAuth";
 import { RequireAdmin } from "@/components/RequireAdmin";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
@@ -8,13 +15,14 @@ import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { createLocalConvexClient } from "@/lib/localConvexClient";
-import React, { StrictMode, useEffect, lazy, Suspense } from "react";
+import React, { StrictMode, useEffect, useRef, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 
 import { AppShell } from "@/components/AppShell";
 import { LanguageProvider } from "@/lib/lang";
+import { useAuth } from "@/hooks/use-auth";
 
 const Landing = lazy(() => import("@/pages/Landing").then((m) => ({ default: m.Landing })));
 const Feed = lazy(() => import("@/pages/Feed").then((m) => ({ default: m.Feed })));
@@ -108,6 +116,30 @@ function AppProviders({ children }: { children: React.ReactNode }) {
   return <ConvexProvider client={convex}>{children}</ConvexProvider>;
 }
 
+/**
+ * Ties analytics events to the signed-in account, and forgets it on sign-out.
+ *
+ * The id is used, never the e-mail address, and nothing is sent when no
+ * project key is configured (see `lib/analytics`).
+ */
+function AnalyticsIdentity() {
+  const { user } = useAuth();
+  const seen = useRef<string | null>(null);
+
+  useEffect(() => {
+    const id = user?._id ?? null;
+    if (id && id !== seen.current) {
+      identifyUser(id, { role: user?.role });
+      seen.current = id;
+    } else if (!id && seen.current) {
+      resetAnalytics();
+      seen.current = null;
+    }
+  }, [user?._id, user?.role]);
+
+  return null;
+}
+
 /** Keeps the host preview iframe in sync with client-side navigation. */
 function RouteSyncer() {
   const location = useLocation();
@@ -116,6 +148,10 @@ function RouteSyncer() {
       { type: "iframe-route-change", path: location.pathname },
       "*",
     );
+
+    // One pageview per navigation, sent by the router so a client-side route
+    // change counts exactly once.
+    capturePageview(`${location.pathname}${location.search}`);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -144,6 +180,9 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
   });
 }
 
+// Starts PostHog when VITE_POSTHOG_KEY is configured; a no-op otherwise.
+initAnalytics();
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
@@ -154,9 +193,13 @@ createRoot(document.getElementById("root")!).render(
         <LanguageProvider>
           <BrowserRouter>
             <RouteSyncer />
+            <AnalyticsIdentity />
             {/* Rewind the window and any inner scroll panes on navigation. */}
             <ScrollToTop />
             <Suspense fallback={<RouteLoading />}>
+              {/* Sign-in is the entry point: every screen below is behind the
+                  wall except `/auth` and the legal/help pages. */}
+              <AuthWall>
               <Routes>
                 {/* Public marketplace */}
                 <Route path="/" element={<AppShell><Landing /></AppShell>} />
@@ -233,7 +276,7 @@ createRoot(document.getElementById("root")!).render(
                 {/* Auth: authenticated users land in the product experience */}
                 <Route
                   path="/auth"
-                  element={<AuthPage redirectAfterAuth="/feed" />}
+                  element={<AuthPage redirectAfterAuth="/" />}
                 />
 
                 {/* Retailer */}
@@ -327,6 +370,7 @@ createRoot(document.getElementById("root")!).render(
                   element={<AppShell><NotFound /></AppShell>}
                 />
               </Routes>
+              </AuthWall>
             </Suspense>
           </BrowserRouter>
         </LanguageProvider>

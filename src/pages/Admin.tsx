@@ -223,6 +223,8 @@ function Users() {
   const liveUsers = useAuthQuery(api.admin.listUsers, { role: role || undefined });
   const suspend = useMutation(api.admin.setUserSuspended);
   const setUserRole = useMutation(api.admin.setUserRole);
+  const removeUser = useMutation(api.admin.deleteUser);
+  const { user: me } = useAuth();
 
   // Live rows only. The panel used to top the table up with invented accounts
   // so it never looked empty; on a platform that launches empty that would be
@@ -240,6 +242,45 @@ function Users() {
       );
     } catch {
       toast.error(t.errGeneric);
+    }
+  };
+
+  /**
+   * Deleting is irreversible, so the admin retypes the address instead of
+   * clicking a dialog away. The server re-checks it, so a typo cannot win.
+   */
+  const handleDelete = async (row: { id: string; email: string }) => {
+    const typed = window.prompt(
+      lang === "ar"
+        ? `حذف نهائي. اكتب بريد الحساب للتأكيد:\n${row.email}`
+        : `Suppression définitive. Retapez l'e-mail pour confirmer :\n${row.email}`,
+    );
+    if (typed === null) return;
+    try {
+      await removeUser({
+        userId: row.id as unknown as Id<"users">,
+        confirmEmail: typed,
+      });
+      toast.success(lang === "ar" ? "تم حذف الحساب" : "Compte supprimé");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("errUserHasShop")) {
+        toast.error(
+          lang === "ar"
+            ? "هذا الحساب يملك متجراً — علّقه بدل حذفه"
+            : "Ce compte possède une boutique : suspendez-le",
+        );
+      } else if (message.includes("errCannotDeleteAdmin")) {
+        toast.error(
+          lang === "ar" ? "لا يمكن حذف حساب مسؤول" : "Impossible de supprimer un admin",
+        );
+      } else if (message.includes("errConfirmMismatch")) {
+        toast.error(
+          lang === "ar" ? "البريد المكتوب لا يطابق" : "L'e-mail saisi ne correspond pas",
+        );
+      } else {
+        toast.error(t.errGeneric);
+      }
     }
   };
 
@@ -299,6 +340,18 @@ function Users() {
                       {t.adminSuspend}
                     </span>
                   )}
+                  {!row.emailVerified && (
+                    <span
+                      className="mt-0.5 ms-1 inline-block rounded bg-amber-100 px-1.5 text-[10px] font-bold text-amber-800"
+                      title={
+                        lang === "ar"
+                          ? "لم يُثبَت هذا البريد برمز، فالحساب لا يصلح للأدمن ولا لاسترجاع كلمة المرور"
+                          : "Adresse non vérifiée par code : pas d'admin ni de récupération"
+                      }
+                    >
+                      {lang === "ar" ? "بريد غير مؤكد" : "E-mail non vérifié"}
+                    </span>
+                  )}
                 </td>
                 <td className="p-3 text-xs text-neutral-600">
                   <bdi dir="ltr">{row.email}</bdi>
@@ -351,6 +404,14 @@ function Users() {
                   >
                     {row.suspended ? t.adminActivate : t.adminSuspend}
                   </button>
+                  {row.id !== me?._id && row.role !== "admin" && (
+                    <button
+                      onClick={() => handleDelete(row)}
+                      className="tap-target ms-1 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 hover:bg-red-100"
+                    >
+                      {lang === "ar" ? "حذف" : "Supprimer"}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -1,13 +1,16 @@
 /**
  * The credential flows, run against the real Convex Auth provider.
  *
- * These are the rules a person actually meets: a new account does nothing
- * until the e-mail code is confirmed, a wrong password and an unknown address
- * are indistinguishable, a reset code works exactly once and dies after ten
- * minutes, and the abuse limits bite before the credentials are even sent.
+ * These are the rules a person actually meets: signing up with a password
+ * signs the new account in immediately (email verification is deliberately
+ * off while the deployment has no mail sender), a wrong password and an
+ * unknown address are indistinguishable, a reset code works exactly once and
+ * dies after ten minutes, and the abuse limits bite before the credentials are
+ * even sent.
  *
  * `axios` is stubbed, so the e-mail body that would leave the deployment is
- * captured instead of sent — which is also how the tests read the 6-digit code.
+ * captured instead of sent — which is also how the reset tests read the
+ * 6-digit code.
  */
 
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
@@ -59,16 +62,14 @@ function lastCode(): string {
   return body.otp!;
 }
 
-/** Sign up and confirm the address, so the account is a normal signed-in one. */
-async function verifiedAccount(t: TestCtx, email = EMAIL, password = PASSWORD) {
-  await t.action(api.auth.signIn, {
-    provider: "password",
-    params: { flow: "signUp", email, password, name: "Tester", role: "retailer" },
-  });
-  const code = lastCode();
+/**
+ * Sign up, which returns a session directly: password sign-up needs no e-mail
+ * code, so this is the whole "create a normal account" step.
+ */
+async function createAccount(t: TestCtx, email = EMAIL, password = PASSWORD) {
   return await t.action(api.auth.signIn, {
     provider: "password",
-    params: { flow: "email-verification", email, code },
+    params: { flow: "signUp", email, password, name: "Tester", role: "retailer" },
   });
 }
 
@@ -99,7 +100,7 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("creating an account", () => {
-  it("keeps the account inert until the e-mail code is confirmed", async () => {
+  it("signs the new account in immediately, with no e-mail sent", async () => {
     const t = setup();
     const result = await signIn(t, {
       flow: "signUp",
@@ -108,35 +109,24 @@ describe("creating an account", () => {
       name: "Tester",
       role: "retailer",
     });
-    // No tokens: the address has not been proven, so the password alone cannot
-    // get in. The client reads this as "show the code screen".
-    expect(result.tokens).toBeNull();
 
-    // Password sign-in before confirming behaves the same way, which is why
-    // the form has to answer with the code screen rather than silence.
-    const early = await signIn(t, { flow: "signIn", email: EMAIL, password: PASSWORD });
-    expect(early.tokens).toBeNull();
-  });
-
-  it("emails a six digit code and signs in once it is used", async () => {
-    const t = setup();
-    const result = await verifiedAccount(t);
+    // Anyone can register: no sender, no code, no waiting.
     expect(result.tokens).not.toBeNull();
-    expect(Object.keys(result.tokens as object).length).toBeGreaterThan(0);
+    expect(axios.post as Mock).not.toHaveBeenCalled();
+
+    // The address is still unproven — `emailVerificationTime` is what the admin
+    // bootstrap requires, so a typed-in admin address grants nothing.
+    const [user] = await t.run((ctx) => ctx.db.query("users").collect());
+    expect(user.emailVerificationTime).toBeUndefined();
+    expect(user.role).not.toBe("admin");
   });
 
-  it("rejects a wrong confirmation code", async () => {
+  it("has no e-mail verification step to fall back on", async () => {
     const t = setup();
-    await signIn(t, {
-      flow: "signUp",
-      email: EMAIL,
-      password: PASSWORD,
-      name: "Tester",
-      role: "retailer",
-    });
+    await createAccount(t);
     await expect(
       signIn(t, { flow: "email-verification", email: EMAIL, code: "000000" }),
-    ).rejects.toThrow(/code/i);
+    ).rejects.toThrow(/not enabled|could not verify|code/i);
   });
 });
 
@@ -147,7 +137,7 @@ describe("creating an account", () => {
 describe("signing in with a password", () => {
   it("returns tokens for the right password", async () => {
     const t = setup();
-    await verifiedAccount(t);
+    await createAccount(t);
     const result = await signIn(t, { flow: "signIn", email: EMAIL, password: PASSWORD });
     expect(result.tokens).not.toBeNull();
     expect(Object.keys(result.tokens as object).length).toBeGreaterThan(0);
@@ -155,7 +145,7 @@ describe("signing in with a password", () => {
 
   it("rejects the wrong password", async () => {
     const t = setup();
-    await verifiedAccount(t);
+    await createAccount(t);
     await expect(
       signIn(t, { flow: "signIn", email: EMAIL, password: "WrongPass123" }),
     ).rejects.toThrow(/InvalidSecret|Invalid credentials/i);
@@ -163,7 +153,7 @@ describe("signing in with a password", () => {
 
   it("shows one sentence for a wrong password and for an address with no account", async () => {
     const t = setup();
-    await verifiedAccount(t);
+    await createAccount(t);
 
     // Convex Auth names the two failures differently on the wire —
     // `InvalidSecret` versus `InvalidAccountId` — which is an enumeration
@@ -194,23 +184,15 @@ describe("signing in with a password", () => {
     expect(wrongPassword).not.toContain("nobody@example.com");
   });
 
-  it("keeps the address unproven if the confirmation code is never used", async () => {
+  it("lets the same password sign in again straight after sign-up", async () => {
     const t = setup();
-    await signIn(t, {
-      flow: "signUp",
-      email: "unconfirmed@example.com",
-      password: PASSWORD,
-      name: "Unconfirmed",
-      role: "retailer",
-    });
-    // A correct password still yields nothing, so an unconfirmed account can
-    // never be used to read data.
+    await createAccount(t, "self-serve@example.com");
     const result = await signIn(t, {
       flow: "signIn",
-      email: "unconfirmed@example.com",
+      email: "self-serve@example.com",
       password: PASSWORD,
     });
-    expect(result.tokens).toBeNull();
+    expect(result.tokens).not.toBeNull();
   });
 });
 
@@ -227,7 +209,7 @@ describe("password reset", () => {
 
   it("changes the password with the emailed code", async () => {
     const t = setup();
-    await verifiedAccount(t);
+    await createAccount(t);
     const code = await requestCode(t);
 
     const result = await signIn(t, {
@@ -252,7 +234,7 @@ describe("password reset", () => {
 
   it("uses the code exactly once", async () => {
     const t = setup();
-    await verifiedAccount(t);
+    await createAccount(t);
     const code = await requestCode(t);
 
     await signIn(t, {
@@ -275,7 +257,7 @@ describe("password reset", () => {
 
   it("rejects a wrong code without touching the password", async () => {
     const t = setup();
-    await verifiedAccount(t);
+    await createAccount(t);
     await requestCode(t);
 
     await expect(
@@ -295,7 +277,7 @@ describe("password reset", () => {
     expect(CODE_TTL_SECONDS).toBe(600);
 
     const t = setup();
-    await verifiedAccount(t);
+    await createAccount(t);
     const code = await requestCode(t);
 
     // Only `Date` is faked, so Convex's own scheduling stays real.
@@ -342,7 +324,7 @@ describe("attempt limits", () => {
 
   it("lets the signed-in owner clear their counter, and nobody else", async () => {
     const t = setup();
-    await verifiedAccount(t);
+    await createAccount(t);
 
     for (let attempt = 0; attempt < 5; attempt++) {
       await t.mutation(api.authGuard.chargeAttempt, { kind: "signIn", email: EMAIL });

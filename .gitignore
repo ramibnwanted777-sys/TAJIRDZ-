@@ -4,7 +4,11 @@
 .env*.local
 node_modules
 dist
-src/convex/_generated
+
+# Generated Convex code is committed on purpose: without it nothing
+# typechecks or builds in a fresh clone. Regenerate with `npx convex dev`
+# (or `npx convex codegen`) after changing the schema or a function signature.
 
 # Convex local data must never be committed: it mirrors the deployment.
 .convex
+/freebuff-sites-build/
